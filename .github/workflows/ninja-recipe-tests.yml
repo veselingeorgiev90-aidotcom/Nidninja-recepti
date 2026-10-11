@@ -1,0 +1,30 @@
+name: Ninja recipe automation checks
+on:
+  push:
+    paths:
+      - '.github/scripts/prepare_recipe.py'
+      - '.github/workflows/ninja-recipe-*.yml'
+  pull_request:
+    paths:
+      - '.github/scripts/prepare_recipe.py'
+      - '.github/workflows/ninja-recipe-*.yml'
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check Python syntax and recipe data
+        run: |
+          python3 -m py_compile .github/scripts/prepare_recipe.py
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          s=Path('index.html').read_text(encoding='utf-8')
+          a=s.index('const recipes=')+len('const recipes=')
+          b=s.index('];let idx=0',a)
+          data=json.loads(s[a:b+1])
+          assert data and all('name' in r for r in data)
+          print(f'Validated {len(data)} recipes')
+          PY
