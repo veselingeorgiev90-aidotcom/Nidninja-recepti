@@ -1,0 +1,17 @@
+name: "🍳 Нова рецепта за Ninja"
+description: "Подготви рецепта за одобрение, без директно публикуване."
+title: "[NINJA RECIPE] "
+labels: []
+body:
+  - type: markdown
+    attributes:
+      value: "Попълни JSON рецептата. Автоматизацията ще създаде предложение за преглед, а не ще публикува директно."
+  - type: textarea
+    id: recipe
+    attributes:
+      label: "Рецепта (JSON)"
+      description: "Задължителни полета: name, ingredients (списък), steps, mode, temp, time, category."
+      placeholder: '{"name":"Име","ingredients":["100 г ..."],"steps":"...","mode":"Bake","temp":"170°C","time":"15 мин","category":"Основни ястия"}'
+      render: json
+    validations:
+      required: true
