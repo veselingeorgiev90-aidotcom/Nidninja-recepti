@@ -37,6 +37,7 @@ jobs:
           for r in data:
               if r.get('image'):
                   assert Path(r['image']).is_file(), r['image']
+                  assert Path(r['image']).stat().st_size > 1000, 'Empty image: '+r['image']
           print(f'Validated {len(data)} recipes')
           PY
       - name: Check JavaScript syntax
