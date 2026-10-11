@@ -1,0 +1,45 @@
+name: Ninja recipe from issue
+on:
+  issues:
+    types: [opened]
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+jobs:
+  prepare:
+    if: startsWith(github.event.issue.title, '[NINJA RECIPE]')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Parse issue form and prepare recipe
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: |
+          python3 - <<'PY'
+          import os,re,json
+          body=os.environ.get('ISSUE_BODY','')
+          match=re.search(r'```json\\s*([\\s\\S]*?)\\s*```',body,re.I)
+          if not match:
+              raise SystemExit('Expected fenced json recipe in issue body')
+          obj=json.loads(match.group(1))
+          with open('/tmp/ninja_recipe.json','w',encoding='utf-8') as f: json.dump(obj,f,ensure_ascii=False)
+          PY
+          RECIPE_JSON="$(cat /tmp/ninja_recipe.json)" python3 .github/scripts/prepare_recipe.py
+      - name: Open approval request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          if git diff --quiet -- index.html; then
+            gh issue comment "$ISSUE_NUMBER" --body "Рецептата вече съществува; не е създадено ново предложение."
+            exit 0
+          fi
+          BRANCH="ninja-issue-$ISSUE_NUMBER-${{ github.run_id }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$BRANCH"
+          git add index.html
+          git commit -m "Prepare Ninja recipe from issue #$ISSUE_NUMBER"
+          git push origin "$BRANCH"
+          gh pr create --base "${{ github.event.repository.default_branch }}" --head "$BRANCH" --title "🍳 Ninja: рецепта #$ISSUE_NUMBER за одобрение" --body "Closes #$ISSUE_NUMBER\n\nРецептата НЕ е публикувана. За публикуване е необходимо ръчно одобрение чрез Merge pull request."
