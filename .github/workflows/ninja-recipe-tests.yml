@@ -2,10 +2,16 @@ name: Ninja recipe automation checks
 on:
   push:
     paths:
+      - 'index.html'
+      - 'app.js'
+      - 'images/**'
       - '.github/scripts/prepare_recipe.py'
       - '.github/workflows/ninja-recipe-*.yml'
   pull_request:
     paths:
+      - 'index.html'
+      - 'app.js'
+      - 'images/**'
       - '.github/scripts/prepare_recipe.py'
       - '.github/workflows/ninja-recipe-*.yml'
 permissions:
@@ -26,5 +32,12 @@ jobs:
           b=s.index('];let idx=0',a)
           data=json.loads(s[a:b+1])
           assert data and all('name' in r for r in data)
+          names=[r['name'].strip().casefold() for r in data]
+          assert len(names)==len(set(names)), 'Duplicate recipes'
+          for r in data:
+              if r.get('image'):
+                  assert Path(r['image']).is_file(), r['image']
           print(f'Validated {len(data)} recipes')
           PY
+      - name: Check JavaScript syntax
+        run: node --check app.js
