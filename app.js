@@ -45,9 +45,22 @@ const category=r=>categoryAliases[r.category]||r.category;
 [...new Set(recipes.map(category))].sort((a,b)=>a.localeCompare(b,'bg')).forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;catSelect.appendChild(o);});
 const normalize=s=>s.normalize('NFKC').toLocaleLowerCase('bg').replace(/\s+/g,' ').trim();
 function closeSearch(){searchDialog.classList.remove('open');document.querySelectorAll('body > :not(#searchResults)').forEach(el=>el.inert=false);if(searchOpener?.isConnected)searchOpener.focus();}
+function accessoryKeys(r){
+ const text=(r.accessory||'').toLocaleLowerCase('bg');
+ const keys=new Set(r.pan?[r.pan]:[]);
+ if(/силиконова.*7 гнезда/.test(text))keys.add('silicone');
+ if(/cook & crisp|air fry|кошница за запичане|тенджера; кошница/.test(text))keys.add('airfryer');
+ if(/решетка/.test(text))keys.add('rack');
+ if(/ниск[а-я]* решетка|решетка.*ниска/.test(text)||/ниск[а-я]* решетка/.test(r.steps||'')){keys.add('rack-low');keys.add('rack');}
+ if(/решетка.*висока/.test(text))keys.add('rack-high');
+ if(/за пара/.test(text))keys.add('steam');
+ if(/основен съд|тенджера/.test(text))keys.add('pot');
+ if(/приставка за пица/.test(text))keys.add('pizza');
+ return [...keys];
+}
 function runSearch(){
  const words=normalize(searchInput.value).split(' ').filter(Boolean),cat=catSelect.value;
- const hits=recipes.map((r,i)=>({...r,_i:i})).filter(r=>{const text=normalize([r.name,r.category,category(r),r.collection||'',r.accessory||'Силиконова форма със 7 гнезда',r.mode,r.steps,...r.ingredients].join(' '));return (!formsOnly||r.collection==='Четирите форми')&&(!panSelect.value||r.pan===panSelect.value)&&(!cat||category(r)===cat)&&words.every(w=>text.includes(w));});
+ const hits=recipes.map((r,i)=>({...r,_i:i})).filter(r=>{const text=normalize([r.name,r.category,category(r),r.collection||'',r.accessory||'Силиконова форма със 7 гнезда',r.mode,r.steps,...r.ingredients].join(' '));return (!formsOnly||accessoryKeys(r).length>0)&&(!panSelect.value||accessoryKeys(r).includes(panSelect.value))&&(!cat||category(r)===cat)&&words.every(w=>text.includes(w));});
  resultItems.replaceChildren();searchDialog.querySelector('h2').textContent=`Намерени рецепти (${hits.length})`;
  if(!hits.length)resultItems.textContent='Няма намерени рецепти. Опитай с друга дума или категория.';
  hits.forEach(r=>{const b=document.createElement('button');b.className='item';const strong=document.createElement('strong');strong.textContent=(r._i+1)+'. '+r.name;const small=document.createElement('small');small.textContent=category(r)+' · '+(r.accessory||'Силиконова форма със 7 гнезда')+' · '+r.mode+' · '+r.time;b.append(strong,small);b.onclick=()=>{closeSearch();go(r._i+1);};resultItems.appendChild(b);});
